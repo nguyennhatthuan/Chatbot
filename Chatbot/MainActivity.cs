@@ -21,9 +21,11 @@ namespace Chatbot
 	public class MainActivity : Activity
 	{
 		public EditText UserMessage { get; set; }
-		public ImageButton SendButton { get; set; }
+		public Button SendButton { get; set; }
 		public RecyclerView MessagesRecycler { get; set; }
 		public LinearLayout InputArea { get; set; }
+		public RelativeLayout TextInputLayout { get; set; }
+		public HorizontalScrollView ButtonsInputLayout { get; set; }
 		public List<Microsoft.Bot.Connector.DirectLine.Activity> MessagesList { get; set; } = new List<Microsoft.Bot.Connector.DirectLine.Activity>();
 		public BotConnector BotConnector { get; set; }
 
@@ -40,8 +42,10 @@ namespace Chatbot
 		private void InitViews()
 		{
 			UserMessage = FindViewById<EditText>(Resource.Id.main_inputmessage_edittext);
-			SendButton = FindViewById<ImageButton>(Resource.Id.main_send_floatingactionbutton);
+			SendButton = FindViewById<Button>(Resource.Id.main_send_floatingactionbutton);
 			MessagesRecycler = FindViewById<RecyclerView>(Resource.Id.main_message_listview);
+			TextInputLayout = FindViewById<RelativeLayout>(Resource.Id.main_textinput_layout);
+			ButtonsInputLayout = FindViewById<HorizontalScrollView>(Resource.Id.main_buttoninput_layout);
 			InputArea = FindViewById<LinearLayout>(Resource.Id.main_inputmessage_layout);
 
 			var adapter = new ChatAdapter(MessagesList);
@@ -50,13 +54,15 @@ namespace Chatbot
 			layoutManager.StackFromEnd = true;
 			MessagesRecycler.SetLayoutManager(layoutManager);
 			MessagesRecycler.SetAdapter(adapter);
+
+			SetInputLayout(true);
 		}
 
 		private async void InitBotConnector()
 		{
 			var id = Android.Provider.Settings.Secure.AndroidId;
 			BotConnector = new BotConnector(id);
-			await BotConnector.StartBotConversation();
+			BotConnector.StartBotConversation();
 		}
 
 		private void InitEvents()
@@ -83,19 +89,24 @@ namespace Chatbot
 
 		private void UpdateListMessages(List<Microsoft.Bot.Connector.DirectLine.Activity> messages)
 		{
-			foreach (var message in messages)
+			RunOnUiThread(() =>
 			{
-				if (MessageChecker.CheckTypeOfMessage(message) == AttachmentType.None)
-					AddMessageToList(message);
-				else
+				foreach (var message in messages)
 				{
-					var attachmentContent = JsonConvert.DeserializeObject<AttachmentContent>(message.Attachments[0].Content.ToString());
-					message.Text = attachmentContent.Text;
-					UserMessage.Visibility = ViewStates.Gone;
-					AddMessageToList(message);
-					AddButtons(attachmentContent.Buttons.ToList());
+					if (MessageChecker.CheckTypeOfMessage(message) == AttachmentType.None)
+						AddMessageToList(message);
+					else
+					{
+						var attachmentContent = JsonConvert.DeserializeObject<AttachmentContent>(message.Attachments[0].Content.ToString());
+						message.Text = attachmentContent.Text;
+
+						SetInputLayout(false);
+
+						AddMessageToList(message);
+						AddButtons(attachmentContent.Buttons.ToList());
+					}
 				}
-			}
+			});      
 		}
 
 		private void AddMessageToList(Microsoft.Bot.Connector.DirectLine.Activity message)
@@ -123,12 +134,26 @@ namespace Chatbot
 				button.Click += async (sender, e) =>
 				{
 					InputArea.RemoveAllViews();
-					UserMessage.Visibility = ViewStates.Visible;
+					SetInputLayout(true);
 					var activity = new Microsoft.Bot.Connector.DirectLine.Activity(type: "message", text: button.Text, fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = Android.Provider.Settings.Secure.AndroidId });
 					AddMessageToList(activity);
 					await SendMessage(button.Text);
 				};
 				InputArea.AddView(button);
+			}
+		}
+
+		private void SetInputLayout(bool condition)
+		{
+			if (condition)
+			{
+				TextInputLayout.Visibility = ViewStates.Visible;
+				ButtonsInputLayout.Visibility = ViewStates.Gone;
+			}
+			else
+			{
+				TextInputLayout.Visibility = ViewStates.Gone;
+				ButtonsInputLayout.Visibility = ViewStates.Visible;
 			}
 		}
 	}
