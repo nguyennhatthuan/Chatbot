@@ -97,6 +97,11 @@
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\BotConnector.cs" />
+    <Compile Include="Views\Chat\ChatAdapter.cs" />
+    <Compile Include="Helpers\MessageChecker.cs" />
+    <Compile Include="Definitions\AttachmentType.cs" />
+    <Compile Include="Definitions\Models\AttachmentButton.cs" />
+    <Compile Include="Definitions\Models\AttachmentContent.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -115,10 +120,16 @@
     <AndroidResource Include="Resources\layout\SendMessage.axml" />
     <AndroidResource Include="Resources\layout\ReceiveMessage.axml" />
     <AndroidResource Include="Resources\drawable\icon_send.png" />
+    <AndroidResource Include="Resources\drawable\button_rounded.xml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\drawable\" />
     <Folder Include="Services\" />
+    <Folder Include="Views\" />
+    <Folder Include="Views\Chat\" />
+    <Folder Include="Helpers\" />
+    <Folder Include="Definitions\" />
+    <Folder Include="Definitions\Models\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ProjectExtensions>

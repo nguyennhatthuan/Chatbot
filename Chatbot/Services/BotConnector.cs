@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector.DirectLine;
 
@@ -16,7 +17,7 @@ namespace Chatbot.Services
 		private string _watermark;
 
 		private string directLineSecret = "-oBb0OJjaaM.cwA.FzA.yQnOKaTnrr488oYLFAlYVDguZfBC3a93r69UXGhWAJo";
-		private string botId = "DontCareBot";
+		public static string BotId = "DontCareBot";
 		private string _fromUser = "ClientUser";
 
 		public BotConnector(string fromUser)
@@ -47,7 +48,7 @@ namespace Chatbot.Services
 												  .GetActivitiesAsync(_conversation.ConversationId, _watermark)
 												  .ConfigureAwait(false);
 			_watermark = response.Watermark;
-			return response.Activities;
+			return response.Activities.Where(a => a.From.Id == BotId).ToList();
 		}
 	}
 }
