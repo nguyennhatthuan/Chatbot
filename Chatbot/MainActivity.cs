@@ -27,6 +27,7 @@ namespace Chatbot
 		public RelativeLayout TextInputLayout { get; set; }
 		public HorizontalScrollView ButtonsInputLayout { get; set; }
 		public List<Microsoft.Bot.Connector.DirectLine.Activity> MessagesList { get; set; } = new List<Microsoft.Bot.Connector.DirectLine.Activity>();
+		public ChatAdapter Adapter { get; set; }
 		public BotConnector BotConnector { get; set; }
 
 		protected override void OnCreate(Bundle savedInstanceState)
@@ -48,12 +49,14 @@ namespace Chatbot
 			ButtonsInputLayout = FindViewById<HorizontalScrollView>(Resource.Id.main_buttoninput_layout);
 			InputArea = FindViewById<LinearLayout>(Resource.Id.main_inputmessage_layout);
 
-			var adapter = new ChatAdapter(MessagesList);
+			Adapter = new ChatAdapter(MessagesList);
 			var layoutManager = new LinearLayoutManager(this);
 			layoutManager.ReverseLayout = true;
 			layoutManager.StackFromEnd = true;
 			MessagesRecycler.SetLayoutManager(layoutManager);
-			MessagesRecycler.SetAdapter(adapter);
+			MessagesRecycler.SetAdapter(Adapter);
+
+            SendButton.Enabled = false;
 
 			SetInputLayout(true);
 		}
@@ -62,7 +65,10 @@ namespace Chatbot
 		{
 			var id = Android.Provider.Settings.Secure.AndroidId;
 			BotConnector = new BotConnector(id);
-			BotConnector.StartBotConversation();
+			BotConnector.StartBotConversation().GetAwaiter().OnCompleted(()=>
+            {
+                SendButton.Enabled = true;
+            });
 		}
 
 		private void InitEvents()
@@ -74,8 +80,7 @@ namespace Chatbot
 		{
 			var message = UserMessage.Text;
 			UserMessage.Text = string.Empty;
-
-			var activity = new Microsoft.Bot.Connector.DirectLine.Activity(type: "message", text: message, fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = Android.Provider.Settings.Secure.AndroidId });
+			var activity = new Microsoft.Bot.Connector.DirectLine.Activity("message", text: message, fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = Android.Provider.Settings.Secure.AndroidId });
 			AddMessageToList(activity);
 			await SendMessage(message);
 		}
@@ -89,30 +94,27 @@ namespace Chatbot
 
 		private void UpdateListMessages(List<Microsoft.Bot.Connector.DirectLine.Activity> messages)
 		{
-			RunOnUiThread(() =>
+			foreach (var message in messages)
 			{
-				foreach (var message in messages)
+				if (MessageChecker.CheckTypeOfMessage(message) == AttachmentType.None)
+					AddMessageToList(message);
+				else
 				{
-					if (MessageChecker.CheckTypeOfMessage(message) == AttachmentType.None)
-						AddMessageToList(message);
-					else
-					{
-						var attachmentContent = JsonConvert.DeserializeObject<AttachmentContent>(message.Attachments[0].Content.ToString());
-						message.Text = attachmentContent.Text;
+					var attachmentContent = JsonConvert.DeserializeObject<AttachmentContent>(message.Attachments[0].Content.ToString());
+					message.Text = attachmentContent.Text;
 
-						SetInputLayout(false);
+					SetInputLayout(false);
 
-						AddMessageToList(message);
-						AddButtons(attachmentContent.Buttons.ToList());
-					}
+					AddMessageToList(message);
+					AddButtons(attachmentContent.Buttons.ToList());
 				}
-			});      
+			}
 		}
 
 		private void AddMessageToList(Microsoft.Bot.Connector.DirectLine.Activity message)
 		{
 			MessagesList.Insert(0, message);
-			MessagesRecycler.GetAdapter().NotifyItemInserted(0);
+			Adapter.NotifyItemInserted(0);
 			MessagesRecycler.ScrollToPosition(0);
 		}
 
@@ -128,6 +130,7 @@ namespace Chatbot
 					Text = attachmentButton.Title,
 					LayoutParameters = layoutParams,
 				};
+				button.SetPadding(4, 2, 4, 2);
 
 				var drawable = Resources.GetDrawable(Resource.Drawable.button_rounded);
 				button.Background = drawable;
@@ -135,7 +138,9 @@ namespace Chatbot
 				{
 					InputArea.RemoveAllViews();
 					SetInputLayout(true);
-					var activity = new Microsoft.Bot.Connector.DirectLine.Activity(type: "message", text: button.Text, fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = Android.Provider.Settings.Secure.AndroidId });
+					var activity = new Microsoft.Bot.Connector.DirectLine.Activity(type: "message",
+																				   text: button.Text,
+																				   fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = Android.Provider.Settings.Secure.AndroidId });
 					AddMessageToList(activity);
 					await SendMessage(button.Text);
 				};
