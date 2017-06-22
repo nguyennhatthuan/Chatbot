@@ -65,6 +65,9 @@ namespace Chatbot
 
             SendButton.Enabled = false;
             SetInputLayout(true);
+
+            var activity = new Microsoft.Bot.Connector.DirectLine.Activity("message", text: "Hey, my name is Thuan, I'll help you get this claim sorted out in no time...", fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = BotConnector.BotId });
+            AddMessageToList(activity);
         }
 
         private async void InitBotConnector()
@@ -96,6 +99,7 @@ namespace Chatbot
             UserMessage.Text = string.Empty;
             var activity = new Microsoft.Bot.Connector.DirectLine.Activity("message", text: message, fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = Android.Provider.Settings.Secure.AndroidId });
             AddMessageToList(activity);
+            
             await SendMessage(message);
         }
 
@@ -110,6 +114,9 @@ namespace Chatbot
             TextInputLayout.Visibility = ViewStates.Gone;
             ButtonsInputLayout.Visibility = ViewStates.Gone;
 
+            var activity = new Microsoft.Bot.Connector.DirectLine.Activity("message", text: "...", fromProperty: new Microsoft.Bot.Connector.DirectLine.ChannelAccount { Id = BotConnector.BotId });
+            AddMessageToList(activity);
+
             await BotConnector.SendMessage(message);
             var result = await BotConnector.GetMessages();
             UpdateListMessages(result.ToList());
@@ -117,6 +124,8 @@ namespace Chatbot
 
         private void UpdateListMessages(List<Microsoft.Bot.Connector.DirectLine.Activity> messages)
         {
+            MessagesList.RemoveAt(0);
+            Adapter.NotifyDataSetChanged();
             foreach (var message in messages)
             {
                 if (MessageChecker.CheckTypeOfMessage(message) == AttachmentType.None)
@@ -160,11 +169,11 @@ namespace Chatbot
             layoutParams.Weight = 1;
             layoutParams.SetMargins(4, 2, 4, 2);
 
-            var width = 0;
             foreach (var attachmentButton in attachmentButtons)
             {
                 var button = new Button(this)
                 {
+                    TransformationMethod = null,
                     Text = attachmentButton.Title,
                     LayoutParameters = layoutParams,
                 };
@@ -183,8 +192,19 @@ namespace Chatbot
                     await SendMessage(button.Text);
                 };
                 InputArea.AddView(button);
-                width += button.Width;
             }
+        }
+
+        private void AddAutoCompleteTextField()
+        {
+            var layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
+            layoutParams.Weight = 1;
+            layoutParams.SetMargins(4, 2, 4, 2);
+
+            var textview = new AutoCompleteTextView(this)
+            {
+                LayoutParameters = layoutParams,
+            };
         }
 
         private void AddDatePicker()
