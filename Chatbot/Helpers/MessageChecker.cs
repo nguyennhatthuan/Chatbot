@@ -15,5 +15,15 @@ namespace Chatbot.Helpers
 					return AttachmentType.None;
 			}
 		}
+
+        public static InputType CheckInputType(string message)
+        {
+            message = message.ToLower();
+            if(message.Contains("birthday?"))
+            {
+                return InputType.Birthday;
+            }
+            return InputType.Normal;
+        }
 	}
 }
